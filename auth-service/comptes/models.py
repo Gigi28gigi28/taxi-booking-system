@@ -4,7 +4,7 @@ from django.contrib.auth.models import (
 )
 from django.utils import timezone
 
-# CUSTOM USER MANAGER
+# USER MANAGER
 class CompteManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -52,7 +52,10 @@ class Compte(AbstractBaseUser, PermissionsMixin):
         return f"{self.email} ({self.role})"
 
     def save(self, *args, **kwargs):
+     if self.email:
+        self.email = self.email.lower().strip()
         super().save(*args, **kwargs)
+
 
         try:
             Group.objects.get_or_create(name=self.role)

@@ -11,7 +11,7 @@ User = get_user_model()
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)
     password2 = serializers.CharField(write_only=True, required=True)
-    role = serializers.CharField(read_only=True, default='passager')  # enforce passager
+    role = serializers.CharField(read_only=True, default='passager')  
 
     class Meta:
         model = User
@@ -46,12 +46,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
-# CUSTOM JWT SERIALIZER
+# JWT SERIALIZER
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """
-    Override SimpleJWT serializer to add custom claims: role, email
-    """
-
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
@@ -116,8 +112,15 @@ class ChauffeurLoginSerializer(serializers.Serializer):
         email = attrs.get("email").lower()
         password = attrs.get("password")
 
-        user = authenticate(email=email, password=password)
-        if not user:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Invalid credentials.")
+
+        if not user.check_password(password):
             raise serializers.ValidationError("Invalid credentials.")
 
         if user.role != "chauffeur":

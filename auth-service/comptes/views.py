@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect 
+from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 
@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework.permissions import IsAuthenticated
+
 from .decorators import rate_limit_login
 
 from .serializers import (
@@ -14,11 +15,10 @@ from .serializers import (
     ChangePasswordSerializer, CustomTokenObtainPairSerializer
 )
 
-from rest_framework_simplejwt.tokens import RefreshToken
-
 from .permissions import IsChauffeur, IsPassager
 
-# SESSION LOGIN (WEB ONLY)
+
+# WEB SESSION LOGIN (only web)
 @rate_limit_login
 def login_view(request):
     if request.method == 'POST':
@@ -29,6 +29,7 @@ def login_view(request):
         if user:
             login(request, user)
             return redirect('home')
+
         messages.error(request, 'Invalid credentials')
 
     return render(request, 'registration/login.html')
@@ -39,7 +40,7 @@ def logout_view(request):
     return redirect('login')
 
 
-# REGISTER API (PASSAGER)
+# REGISTER API
 class RegisterAPIView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -61,7 +62,7 @@ class RegisterAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# JWT LOGIN
+# LOGIN API
 class LoginAPIView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -76,7 +77,7 @@ class LoginAPIView(APIView):
                 "user": UserSerializer(user).data,
                 "tokens": {
                     "refresh": str(refresh),
-                    "access": str(refresh.access_token),
+                    "access": str(refresh.access_token)
                 }
             }
             return Response(data, status=200)
@@ -84,7 +85,7 @@ class LoginAPIView(APIView):
         return Response(serializer.errors, status=400)
 
 
-# LOGOUT (BLACKLIST JWT)
+# LOGOUT
 class LogoutAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -93,6 +94,7 @@ class LogoutAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response({"detail": "Successfully logged out."}, status=200)
+
         return Response(serializer.errors, status=400)
 
 
@@ -101,8 +103,7 @@ class MeAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        serializer = UserSerializer(request.user)
-        return Response(serializer.data, status=200)
+        return Response(UserSerializer(request.user).data, status=200)
 
 
 # CHAUFFEUR LOGIN
@@ -126,7 +127,7 @@ class ChauffeurLoginAPIView(APIView):
         }, status=200)
 
 
-# PASSAGER-ONLY ENDPOINT
+# ROLE-BASED ENDPOINTS
 class PassagerOnlyAPIView(APIView):
     permission_classes = [IsAuthenticated, IsPassager]
 
@@ -137,7 +138,6 @@ class PassagerOnlyAPIView(APIView):
         )
 
 
-# CHAUFFEUR-ONLY ENDPOINT
 class ChauffeurOnlyAPIView(APIView):
     permission_classes = [IsAuthenticated, IsChauffeur]
 
@@ -153,11 +153,7 @@ class UpdateProfileAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def patch(self, request):
-        serializer = UpdateProfileSerializer(
-            request.user,
-            data=request.data,
-            partial=True
-        )
+        serializer = UpdateProfileSerializer(request.user, data=request.data, partial=True)
         if serializer.is_valid():
             user = serializer.save()
             return Response(UserSerializer(user).data, status=200)

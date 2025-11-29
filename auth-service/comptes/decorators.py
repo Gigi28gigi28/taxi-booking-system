@@ -1,72 +1,63 @@
-import time
-from functools import wraps
 from django.core.cache import cache
 from django.conf import settings
 from django.http import JsonResponse
-from django.contrib import messages
-from rest_framework.response import Response
-from rest_framework import status
-MAX_ATTEMPTS = getattr(settings, "LOGIN_RATE_LIMIT", {}).get("MAX_ATTEMPTS", 5)
-WINDOW = getattr(settings, "LOGIN_RATE_LIMIT", {}).get("WINDOW_MINUTES", 15) * 60  # seconds
-BLOCK_TIME = getattr(settings, "LOGIN_RATE_LIMIT", {}).get("BLOCK_MINUTES", 15) * 60  # seconds
+from functools import wraps
+import time
+
+
+def get_request_object(*args):
+    if len(args) == 0:
+        return None
+
+    # Class-based view: first arg = self, second = request
+    if hasattr(args[0], 'request'):
+        return args[0].request
+
+    # Function-based view: first arg = request
+    return args[0]
 
 
 def rate_limit_login(view_func):
     @wraps(view_func)
-    def _wrapped_view(request, *args, **kwargs):
-        # Get email/username from request
-        email = request.POST.get("email") or request.data.get("email")
-        ip = get_client_ip(request)
-        cache_key = f"login_attempts:{email}:{ip}"
+    def wrapper(*args, **kwargs):
+        request = get_request_object(*args)
+        if request is None:
+            return view_func(*args, **kwargs)
 
-        # Get current attempts
-        attempt_data = cache.get(cache_key, {"count": 0, "first_attempt": time.time()})
-        elapsed = time.time() - attempt_data["first_attempt"]
+        LIMIT = settings.LOGIN_RATE_LIMIT["MAX_ATTEMPTS"]
+        WINDOW = settings.LOGIN_RATE_LIMIT["WINDOW_MINUTES"] * 60
+        BLOCK_TIME = settings.LOGIN_RATE_LIMIT["BLOCK_MINUTES"] * 60
 
-        # If blocked
-        if attempt_data["count"] >= MAX_ATTEMPTS and elapsed <= BLOCK_TIME:
-            message = f"Too many login attempts. Try again in {int((BLOCK_TIME - elapsed) / 60)+1} minutes."
-            if hasattr(request, "data"):  # DRF API
-                return Response({"detail": message}, status=status.HTTP_429_TOO_MANY_REQUESTS)
-            else:  # Django web
-                messages.error(request, message)
-                return view_func(request, *args, **kwargs)
+        ip = request.META.get("REMOTE_ADDR", "unknown")
 
-        # Call the actual view
-        response = view_func(request, *args, **kwargs)
+        # body might be JSON → use .data
+        try:
+            email = request.data.get("email", "") if hasattr(request, "data") else ""
+        except:
+            email = ""
 
-        # Determine if login failed
-        failed = False
-        if hasattr(response, "status_code"):  # DRF
-            if response.status_code in [400, 401]:
-                failed = True
-        else: 
-            from django.contrib.messages import get_messages
-            if any(msg.level_tag == "error" for msg in get_messages(request)):
-                failed = True
+        key = f"login-attempts:{ip}:{email}"
+        block_key = f"login-blocked:{ip}:{email}"
 
-        # Update attempts
-        if failed:
-            if elapsed > WINDOW:
-                # Reset counter after window
-                attempt_data = {"count": 1, "first_attempt": time.time()}
-            else:
-                attempt_data["count"] += 1
-        else:
-            # Successful login → clear attempts
-            attempt_data = {"count": 0, "first_attempt": time.time()}
+        # Check if blocked
+        if cache.get(block_key):
+            return JsonResponse(
+                {"detail": "Too many login attempts. Try again later."},
+                status=429
+            )
 
-        cache.set(cache_key, attempt_data, timeout=BLOCK_TIME)
-        return response
+        # Increment attempts
+        attempts = cache.get(key, 0) + 1
+        cache.set(key, attempts, WINDOW)
 
-    return _wrapped_view
+        # If exceeds limit → block
+        if attempts > LIMIT:
+            cache.set(block_key, True, BLOCK_TIME)
+            return JsonResponse(
+                {"detail": "Too many login attempts. Try again later."},
+                status=429
+            )
 
+        return view_func(*args, **kwargs)
 
-def get_client_ip(request):
-    """Get client IP address"""
-    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(",")[0]
-    else:
-        ip = request.META.get("REMOTE_ADDR")
-    return ip
+    return wrapper

@@ -7,7 +7,7 @@ class ComptesConfig(AppConfig):
     def ready(self):
         from django.contrib.auth.models import Group
         from django.db.utils import OperationalError, ProgrammingError
-        roles = ['admin', 'passager', 'chauffeur']
+        roles = [ 'passager', 'chauffeur']
         try:
             for r in roles:
                 Group.objects.get_or_create(name=r)
