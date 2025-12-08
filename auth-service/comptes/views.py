@@ -175,3 +175,31 @@ class ChangePasswordAPIView(APIView):
             return Response({"detail": "Password updated successfully."}, status=200)
 
         return Response(serializer.errors, status=400)
+
+
+# VERIFY TOKEN ENDPOINT (for Ride-Service)
+from rest_framework.decorators import api_view
+from rest_framework_simplejwt.tokens import AccessToken
+
+@api_view(["POST"])
+def verify_token(request):
+    try:
+        token_str = request.data.get("token")
+        if not token_str:
+            return Response({"error": "No token provided"}, status=400)
+
+        token = AccessToken(token_str)
+
+        user_id = token["user_id"]
+        role = token.get("role", None)
+
+        user = request.user.__class__.objects.get(id=user_id)
+
+        return Response({
+            "id": user.id,
+            "email": user.email,
+            "role": role,
+        }, status=200)
+
+    except Exception as e:
+        return Response({"error": "Invalid token"}, status=401)
