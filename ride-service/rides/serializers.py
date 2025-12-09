@@ -5,11 +5,14 @@ class RideSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ride
         fields = [
-            "id", "passenger_id", "driver_id",
-            "origin", "destination", "status", "price",
-            "created_at", "updated_at"
+            "id",
+            "passenger",
+            "driver",
+            "origin",
+            "destination",
+            "status",
+            "price",
+            "created_at",
+            "updated_at",
         ]
-        read_only_fields = (
-            "id", "passenger_id", "driver_id", 
-            "status", "price", "created_at", "updated_at"
-        )
+        read_only_fields = ("id", "status", "driver", "price", "created_at", "updated_at")

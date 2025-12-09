@@ -1,121 +1,139 @@
-import os
+"""
+Django settings for ride_service project (Microservice Ride).
+"""
+
 from pathlib import Path
-from datetime import timedelta
-from dotenv import load_dotenv
+import os
 
-load_dotenv()  # charge .env
-
+# -------------------------------
+# BASE DIR
+# -------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "unsafe-secret")
-DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
+# -------------------------------
+# SECURITY
+# -------------------------------
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-prod")
+DEBUG = os.getenv("DEBUG", "1") == "1"
 
-# Applications
+ALLOWED_HOSTS = ["*"]
+
+# -------------------------------
+# INSTALLED APPS
+# -------------------------------
 INSTALLED_APPS = [
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-    "django.contrib.staticfiles",
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
 
-    # tierces
-    "rest_framework",
-    "corsheaders",
+    # Third-party
+    'rest_framework',
 
-    # notre app
-    "rides",
+    # Local apps
+    'rides',
 ]
 
+# -------------------------------
+# MIDDLEWARE
+# -------------------------------
 MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "ride_service.auth_middleware.jwt_verification_middleware",
-
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = "ride_service.urls"
+ROOT_URLCONF = 'ride_service.urls'
 
+# -------------------------------
+# TEMPLATES (not used but required)
+# -------------------------------
 TEMPLATES = [
     {
-        "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
-        "APP_DIRS": True,
-        "OPTIONS": {
-            "context_processors": [
-                "django.template.context_processors.debug",
-                "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],  
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = "ride_service.wsgi.application"
+WSGI_APPLICATION = 'ride_service.wsgi.application'
 
-# Database via env
+# -------------------------------
+# DATABASE
+# Default SQLite for dev
+# Use PostgreSQL in production
+# -------------------------------
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': os.getenv("DB_ENGINE", "django.db.backends.sqlite3"),
+        'NAME': os.getenv("DB_NAME", BASE_DIR / "db.sqlite3"),
+        'USER': os.getenv("DB_USER", ""),
+        'PASSWORD': os.getenv("DB_PASSWORD", ""),
+        'HOST': os.getenv("DB_HOST", ""),
+        'PORT': os.getenv("DB_PORT", ""),
     }
 }
 
-# Password validation (defaults)
-AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",},
-]
+# -------------------------------
+# PASSWORDS (not used)
+# -------------------------------
+AUTH_PASSWORD_VALIDATORS = []
 
-# Internationalisation
-LANGUAGE_CODE = "fr-fr"
-TIME_ZONE = "UTC"
+# -------------------------------
+# LANGUAGE + TIMEZONE
+# -------------------------------
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static
-STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
+# -------------------------------
+# STATIC FILES
+# -------------------------------
+STATIC_URL = 'static/'
 
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Django REST Framework + JWT
+# ============================================================
+# 🔵 MICROSERVICE COMMUNICATION CONFIG
+# ============================================================
+
+# -------------------------------
+# 
+# -------------------------------
+AUTH_VERIFY_URL = os.getenv(
+    "AUTH_VERIFY_URL",
+    "http://auth-service:8000/accounts/api/verify/"
+)
+
+# -------------------------------
+# 
+# -------------------------------
+RABBITMQ_URL = os.getenv(
+    "RABBITMQ_URL",
+    "amqp://guest:guest@rabbitmq:5672/"
+)
+
+# -------------------------------
+# 
+# -------------------------------
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
-    "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticated",
-    ),
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ]
 }
 
-from datetime import timedelta
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=120),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
-    "AUTH_HEADER_TYPES": ("Bearer",),
-}
-
-# CORS (autoriser le UI local)
-CORS_ALLOW_ALL_ORIGINS = True
-
-# RabbitMQ
-RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
-
-# Logging basique
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler",}},
-    "root": {"handlers": ["console"], "level": "INFO"},
-}
