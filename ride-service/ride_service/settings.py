@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # -------------------------------
 # SECURITY
 # -------------------------------
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-prod")
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-51n-i1obuyx^8!dex)y0%0)tfbi3@qy6(8*+pcs!49_#%y$5%0')
 DEBUG = os.getenv("DEBUG", "1") == "1"
 
 ALLOWED_HOSTS = ["*"]
@@ -47,6 +47,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # 🔥 ADD JWT VERIFICATION MIDDLEWARE HERE
+    'ride_service.auth_middleware.jwt_verification_middleware',
 ]
 
 ROOT_URLCONF = 'ride_service.urls'
@@ -113,15 +115,19 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ============================================================
 
 # -------------------------------
-# 
+# AUTH SERVICE URL
 # -------------------------------
+# For Docker/Production: use service name
+# AUTH_VERIFY_URL = "http://auth-service:8000/accounts/api/verify/"
+
+# For Local Development: use localhost with port
 AUTH_VERIFY_URL = os.getenv(
     "AUTH_VERIFY_URL",
-    "http://auth-service:8000/accounts/api/verify/"
+    "http://localhost:8000/accounts/api/verify/"
 )
 
 # -------------------------------
-# 
+# RABBITMQ (for later)
 # -------------------------------
 RABBITMQ_URL = os.getenv(
     "RABBITMQ_URL",
@@ -129,11 +135,10 @@ RABBITMQ_URL = os.getenv(
 )
 
 # -------------------------------
-# 
+# REST FRAMEWORK
 # -------------------------------
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.AllowAny',  # Will be overridden per view
     ]
 }
-

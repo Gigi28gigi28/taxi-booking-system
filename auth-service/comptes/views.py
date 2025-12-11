@@ -8,7 +8,8 @@ from rest_framework import status, permissions
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from .decorators import rate_limit_login
-
+from rest_framework.decorators import api_view  , permission_classes
+from rest_framework_simplejwt.tokens import AccessToken
 from .serializers import (
     RegisterSerializer, LoginSerializer, LogoutSerializer,
     UserSerializer, ChauffeurLoginSerializer, UpdateProfileSerializer,
@@ -182,10 +183,8 @@ class ChangePasswordAPIView(APIView):
 
 
 # VERIFY TOKEN ENDPOINT (for Ride-Service)
-from rest_framework.decorators import api_view
-from rest_framework_simplejwt.tokens import AccessToken
-
 @api_view(["POST"])
+@permission_classes([AllowAny])
 def verify_token(request):
     try:
         token_str = request.data.get("token")
@@ -194,7 +193,7 @@ def verify_token(request):
 
         token = AccessToken(token_str)
 
-        user_id = token["user_id"]
+        user_id = token.get("sub")
         role = token.get("role", None)
 
         user = request.user.__class__.objects.get(id=user_id)
