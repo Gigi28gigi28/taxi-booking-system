@@ -11,7 +11,7 @@ from .views import (
     ChauffeurOnlyAPIView,
     UpdateProfileAPIView,
     ChangePasswordAPIView,
-    verify_token      # ← AJOUT ICI
+    verify_token    
 )
 
 urlpatterns = [
@@ -27,6 +27,6 @@ urlpatterns = [
     path('api/profile/update/', UpdateProfileAPIView.as_view(), name='api-profile-update'),
     path('api/change-password/', ChangePasswordAPIView.as_view(), name='api-change-password'),
 
-    # 🚀 VERY IMPORTANT FOR MICRO-SERVICES
+
     path('api/verify/', verify_token, name='api-verify'),
 ]

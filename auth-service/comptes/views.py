@@ -1,15 +1,15 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
-from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
+from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from .decorators import rate_limit_login
-from rest_framework.decorators import api_view  , permission_classes
-from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework.decorators import api_view, permission_classes
+from django.contrib.auth import get_user_model
 from .serializers import (
     RegisterSerializer, LoginSerializer, LogoutSerializer,
     UserSerializer, ChauffeurLoginSerializer, UpdateProfileSerializer,
@@ -17,7 +17,7 @@ from .serializers import (
 )
 
 from .permissions import IsChauffeur, IsPassager
-
+User = get_user_model()
 
 # WEB SESSION LOGIN (only web)
 @rate_limit_login
@@ -182,27 +182,90 @@ class ChangePasswordAPIView(APIView):
         return Response(serializer.errors, status=400)
 
 
-# VERIFY TOKEN ENDPOINT (for Ride-Service)
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def verify_token(request):
+
+    
+    print("=" * 60)
+    print("🔍 TOKEN VERIFICATION REQUEST")
+    print("=" * 60)
+    
     try:
+        # Get token from request
         token_str = request.data.get("token")
+        
         if not token_str:
+            print("❌ No token provided in request")
             return Response({"error": "No token provided"}, status=400)
-
-        token = AccessToken(token_str)
-
-        user_id = token.get("sub")
-        role = token.get("role", None)
-
-        user = request.user.__class__.objects.get(id=user_id)
-
-        return Response({
+        
+        print(f"Token received: {token_str[:50]}...")
+        
+        # Decode and verify token using SimpleJWT
+        try:
+            token = AccessToken(token_str)
+            print("✅ Token decoded successfully")
+        except InvalidToken as e:
+            print(f"❌ Token validation failed: {str(e)}")
+            return Response({
+                "error": "Invalid token",
+                "detail": str(e)
+            }, status=401)
+        except TokenError as e:
+            print(f"❌ Token error: {str(e)}")
+            return Response({
+                "error": "Token error",
+                "detail": str(e)
+            }, status=401)
+        
+        # Extract user info from token claims
+        user_id = token.get("sub")      # JWT standard: "sub" = subject = user_id
+        role = token.get("role")         # Custom claim
+        email = token.get("email")       # Custom claim
+        
+        print(f"📋 Token claims:")
+        print(f"   - user_id (sub): {user_id}")
+        print(f"   - role: {role}")
+        print(f"   - email: {email}")
+        
+        if not user_id:
+            print("❌ No user_id (sub) in token")
+            return Response({
+                "error": "Invalid token structure",
+                "detail": "Token missing 'sub' claim"
+            }, status=401)
+        
+        # Verify user exists in database
+        try:
+            user = User.objects.get(id=user_id)
+            print(f"✅ User found in database: {user.email}")
+        except User.DoesNotExist:
+            print(f"❌ User {user_id} not found in database")
+            return Response({
+                "error": "User not found",
+                "detail": f"User with id {user_id} does not exist"
+            }, status=404)
+        
+        # Return user info
+        response_data = {
             "id": user.id,
             "email": user.email,
-            "role": role,
-        }, status=200)
-
+            "role": user.role,
+        }
+        
+        print(f"✅ Returning user data: {response_data}")
+        print("=" * 60)
+        
+        return Response(response_data, status=200)
+    
     except Exception as e:
-        return Response({"error": "Invalid token"}, status=401)
+        print(f"❌ Unexpected error: {str(e)}")
+        print(f"   Error type: {type(e).__name__}")
+        import traceback
+        traceback.print_exc()
+        print("=" * 60)
+        
+        return Response({
+            "error": "Token verification failed",
+            "detail": str(e)
+        }, status=401)

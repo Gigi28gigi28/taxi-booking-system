@@ -117,15 +117,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # -------------------------------
 # AUTH SERVICE URL
 # -------------------------------
-# For Docker/Production: use service name
-# AUTH_VERIFY_URL = "http://auth-service:8000/accounts/api/verify/"
-
-# For Local Development: use localhost with port
 AUTH_VERIFY_URL = os.getenv(
     "AUTH_VERIFY_URL",
-    "http://localhost:8000/accounts/api/verify/"
+    "http://localhost:8000/accounts/api/verify/"  
 )
-
 # -------------------------------
 # RABBITMQ (for later)
 # -------------------------------
