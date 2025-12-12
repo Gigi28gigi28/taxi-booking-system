@@ -2,4 +2,4 @@ Django
 djangorestframework
 pika
 requests
-
+python-dotenv

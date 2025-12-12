@@ -39,12 +39,12 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'ride_service.auth_middleware.jwt_verification_middleware',
+    'ride_service.auth_middleware.jwt_verification_middleware',  # Custom JWT verification
 ]
 
 ROOT_URLCONF = 'ride_service.urls'
 
-# TEMPLATES (not used but required)
+# TEMPLATES
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -64,8 +64,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'ride_service.wsgi.application'
 
 # DATABASE
-# Default SQLite for dev
-# Use PostgreSQL in production
 DATABASES = {
     'default': {
         'ENGINE': os.getenv("DB_ENGINE", "django.db.backends.sqlite3"),
@@ -77,7 +75,7 @@ DATABASES = {
     }
 }
 
-# PASSWORDS (not used)
+# PASSWORD VALIDATION
 AUTH_PASSWORD_VALIDATORS = []
 
 # LANGUAGE + TIMEZONE
@@ -91,25 +89,23 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-
 # AUTH SERVICE URL
 AUTH_VERIFY_URL = os.getenv(
     "AUTH_VERIFY_URL",
     "http://localhost:8000/accounts/api/verify/"  
 )
-# RABBITMQ (for later)
+
+# RABBITMQ
 RABBITMQ_URL = os.getenv(
     "RABBITMQ_URL",
     "amqp://guest:guest@rabbitmq:5672/"
 )
 
-# REST FRAMEWORK
+# REST FRAMEWORK - NO JWT AUTHENTICATION (we use middleware instead)
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',  # Will be overridden per view
+        'rest_framework.permissions.AllowAny',
     ],
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ]
+    #  REMOVED: No local JWT authentication - middleware handles it
+    'DEFAULT_AUTHENTICATION_CLASSES': [],
 }

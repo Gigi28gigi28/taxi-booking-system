@@ -1,8 +1,3 @@
-# ============================================================
-# FILE: auth-service/auth_service/settings.py
-# CRITICAL FIX: Don't enforce authentication globally
-# ============================================================
-
 """
 Django settings for auth_service project.
 """

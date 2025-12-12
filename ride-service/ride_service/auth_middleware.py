@@ -20,10 +20,15 @@ AUTH_PUBLIC_ENDPOINTS = [
     "/accounts/api/verify",
 ]
 
+#  Internal microservice endpoints (no auth required)
+INTERNAL_API_ENDPOINTS = [
+    "/api/internal/",
+]
+
 def jwt_verification_middleware(get_response):
     """
     Middleware that verifies JWT token with Auth-Service,
-    except for admin panel, public routes, and static files.
+    except for admin panel, public routes, internal API, and static files.
     """
     def middleware(request):
 
@@ -37,11 +42,16 @@ def jwt_verification_middleware(get_response):
         if any(path.startswith(p) for p in AUTH_PUBLIC_ENDPOINTS):
             return get_response(request)
 
-        # 3. Skip everything that is NOT an API route
+        # 3. Skip internal microservice endpoints
+        if any(path.startswith(p) for p in INTERNAL_API_ENDPOINTS):
+            print(f" Bypassing auth for internal API: {path}")
+            return get_response(request)
+
+        # 4. Skip everything that is NOT an API route
         if not path.startswith("/api/"):
             return get_response(request)
 
-        # 4. Extract JWT
+        # 5. Extract JWT
         auth_header = request.headers.get("Authorization")
 
         if not auth_header:
@@ -58,7 +68,7 @@ def jwt_verification_middleware(get_response):
 
         token = auth_header.replace("Bearer ", "").strip()
 
-        # 5. Call Auth-Service to verify
+        # 6. Call Auth-Service to verify
         try:
             response = requests.post(
                 AUTH_VERIFY_URL,
@@ -81,14 +91,14 @@ def jwt_verification_middleware(get_response):
                 "detail": str(e)
             }, status=503)
 
-        # 6. Token invalid
+        # 7. Token invalid
         if response.status_code != 200:
             return JsonResponse({
                 "error": "Invalid or expired token",
                 "detail": "Your authentication token is not valid"
             }, status=401)
 
-        # 7. Attach user data from auth-service
+        # 8. Attach user data from auth-service
         user_data = response.json()
         request.user_data = user_data
         request.user_id = user_data.get("id")

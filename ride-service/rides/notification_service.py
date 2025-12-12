@@ -19,7 +19,7 @@ class NotificationService:
         )
         return notification
     
-    # ========== PASSENGER NOTIFICATIONS ==========
+    #  PASSENGER NOTIFICATIONS 
     
     @staticmethod
     def notify_ride_requested(ride):

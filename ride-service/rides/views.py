@@ -12,11 +12,17 @@ from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 from .notification_service import NotificationService
+import logging
+from .rabbitmq import (
+    publish_ride_requested,
+    publish_ride_accepted,
+    publish_ride_completed,
+    publish_ride_cancelled
+)
 
 AUTH_VERIFY_URL = settings.AUTH_VERIFY_URL
-
-
 def get_user_from_token(request):
+
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
 
     if not token:
@@ -30,22 +36,7 @@ def get_user_from_token(request):
     except:
         return None
 
-
-# ============================================================
-# FILE: ride-service/rides/views.py
-# FINAL FIXED VERSION
-# ============================================================
-
-from rest_framework import viewsets, status
-from rest_framework.response import Response
-from rest_framework.decorators import action
-from django.shortcuts import get_object_or_404
-from django.utils import timezone
-from datetime import timedelta
-
-from .models import Ride, Notification
-from .serializers import RideSerializer, NotificationSerializer
-from .notification_service import NotificationService
+logger = logging.getLogger(__name__)
 
 
 class RideViewSet(viewsets.ModelViewSet):
@@ -53,20 +44,15 @@ class RideViewSet(viewsets.ModelViewSet):
     serializer_class = RideSerializer
 
     def get_queryset(self):
-        """
-        Filter rides based on authenticated user
-        """
+        """Filter rides based on authenticated user"""
         user_id = getattr(self.request, 'user_id', None)
         user_role = getattr(self.request, 'user_role', None)
         
         if not user_id:
             return Ride.objects.none()
 
-        # Passengers see their own rides
         if user_role in ["passager", "passenger"]:
             return Ride.objects.filter(passenger=user_id)
-        
-        # Drivers see rides assigned to them
         elif user_role in ["chauffeur", "driver"]:
             return Ride.objects.filter(driver=user_id)
         
@@ -75,65 +61,42 @@ class RideViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """
         Create a new ride (passenger only)
-        
-        🔥 KEY FIX: We validate ONLY origin/destination from user input,
-        then add passenger from authenticated user AFTER validation
+        🔥 NOW WITH RABBITMQ INTEGRATION
         """
-        print("\n" + "="*60)
-        print("📝 CREATE RIDE REQUEST")
-        print("="*60)
+        logger.info("\n" + "="*60)
+        logger.info("📝 CREATE RIDE REQUEST")
+        logger.info("="*60)
         
         # Get authenticated user info
         user_id = getattr(request, 'user_id', None)
         user_role = getattr(request, 'user_role', None)
-        user_email = getattr(request, 'user_email', None)
         
-        print(f"User ID: {user_id}")
-        print(f"User Role: {user_role}")
-        print(f"User Email: {user_email}")
-        print(f"Request data: {request.data}")
+        logger.info(f"User ID: {user_id}, Role: {user_role}")
         
-        # Check if user data exists
         if not user_id:
             return Response(
-                {"detail": "User ID not found. Authentication may have failed."},
+                {"detail": "User ID not found. Authentication failed."},
                 status=status.HTTP_401_UNAUTHORIZED
             )
         
-        # Check role (accept both spellings)
         if user_role not in ["passager", "passenger"]:
             return Response(
-                {
-                    "detail": "Only passengers can request rides",
-                    "your_role": user_role
-                },
+                {"detail": "Only passengers can request rides"},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Validate input data (only origin and destination from user)
-        if not request.data:
-            return Response(
-                {"detail": "No data provided"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
+        # Validate input
         origin = request.data.get('origin')
         destination = request.data.get('destination')
         
         if not origin or not destination:
             return Response(
-                {
-                    "detail": "Both origin and destination are required",
-                    "received": {
-                        "origin": origin,
-                        "destination": destination
-                    }
-                },
+                {"detail": "Both origin and destination are required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # 🔥 Create ride directly (bypass serializer for passenger field)
         try:
+            # 1. Create ride in database
             ride = Ride.objects.create(
                 passenger=user_id,
                 origin=origin,
@@ -141,11 +104,24 @@ class RideViewSet(viewsets.ModelViewSet):
                 status=Ride.STATUS_REQUESTED
             )
             
-            print(f"✅ Ride created: ID={ride.id}, Status={ride.status}")
+            logger.info(f" Ride created: ID={ride.id}")
             
-            # Create notification for passenger
+            # 2. Create notification for passenger
             notification = NotificationService.notify_ride_requested(ride)
-            print(f"✅ Notification created: ID={notification.id}")
+            logger.info(f"Notification created: ID={notification.id}")
+            
+            # 3.  PUBLISH TO RABBITMQ - Matcher Worker will process this
+            publish_success = publish_ride_requested(
+                ride_id=ride.id,
+                passenger_id=user_id,
+                origin=origin,
+                destination=destination
+            )
+            
+            if publish_success:
+                logger.info(f" Published ride.requested to RabbitMQ")
+            else:
+                logger.warning(f"Failed to publish to RabbitMQ (ride still created)")
             
             return Response(
                 RideSerializer(ride).data,
@@ -153,34 +129,23 @@ class RideViewSet(viewsets.ModelViewSet):
             )
             
         except Exception as e:
-            print(f"❌ Error creating ride: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            
+            logger.error(f" Error creating ride: {str(e)}")
             return Response(
-                {
-                    "detail": "Error creating ride",
-                    "error": str(e)
-                },
+                {"detail": "Error creating ride", "error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-    # ========== DRIVER ACTIONS ==========
 
     @action(detail=True, methods=["post"], url_path="offer")
     def offer_to_driver(self, request, pk=None):
         """
-        Manually offer ride to a specific driver (for testing without RabbitMQ)
+        Manually offer ride to specific driver (for testing)
         Body: {"driver_id": 123}
         """
         ride = get_object_or_404(Ride, pk=pk)
         
         if ride.status != Ride.STATUS_REQUESTED:
             return Response(
-                {
-                    "detail": "Ride is not available for offer",
-                    "current_status": ride.status
-                },
+                {"detail": "Ride not available for offer"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -199,45 +164,36 @@ class RideViewSet(viewsets.ModelViewSet):
         # Notify driver
         NotificationService.notify_ride_offered(ride)
         
+        logger.info(f" Ride {ride.id} offered to driver {driver_id}")
+        
         return Response(RideSerializer(ride).data)
 
     @action(detail=True, methods=["post"])
     def accept(self, request, pk=None):
         """
         Driver accepts the ride offer
+         NOW WITH RABBITMQ INTEGRATION
         """
         user_id = getattr(request, 'user_id', None)
         user_role = getattr(request, 'user_role', None)
         
         if user_role not in ["chauffeur", "driver"]:
             return Response(
-                {
-                    "detail": "Only drivers can accept rides",
-                    "your_role": user_role
-                },
+                {"detail": "Only drivers can accept rides"},
                 status=status.HTTP_403_FORBIDDEN
             )
 
         ride = get_object_or_404(Ride, pk=pk)
 
-        # Validate ride state
         if ride.status != Ride.STATUS_OFFERED:
             return Response(
-                {
-                    "detail": "Ride is not in offered state",
-                    "current_status": ride.status
-                },
+                {"detail": "Ride is not in offered state"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Validate this driver was offered the ride
         if ride.driver != user_id:
             return Response(
-                {
-                    "detail": "This ride was not offered to you",
-                    "offered_to_driver": ride.driver,
-                    "your_id": user_id
-                },
+                {"detail": "This ride was not offered to you"},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -247,14 +203,21 @@ class RideViewSet(viewsets.ModelViewSet):
 
         # Notify passenger
         NotificationService.notify_ride_accepted(ride)
+        
+        #  PUBLISH TO RABBITMQ
+        publish_ride_accepted(
+            ride_id=ride.id,
+            driver_id=user_id,
+            passenger_id=ride.passenger
+        )
+        
+        logger.info(f" Ride {ride.id} accepted by driver {user_id}")
 
         return Response(RideSerializer(ride).data)
 
     @action(detail=True, methods=["post"])
     def reject(self, request, pk=None):
-        """
-        Driver rejects the ride offer
-        """
+        """Driver rejects the ride offer"""
         user_id = getattr(request, 'user_id', None)
         user_role = getattr(request, 'user_role', None)
         
@@ -268,10 +231,7 @@ class RideViewSet(viewsets.ModelViewSet):
 
         if ride.status != Ride.STATUS_OFFERED:
             return Response(
-                {
-                    "detail": "Ride is not in offered state",
-                    "current_status": ride.status
-                },
+                {"detail": "Ride is not in offered state"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -281,50 +241,67 @@ class RideViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Reset ride to requested state (for re-matching)
+        # Reset to requested (for re-matching)
         ride.driver = None
         ride.status = Ride.STATUS_REQUESTED
         ride.save()
 
         # Notify passenger
         NotificationService.notify_ride_rejected(ride)
+        
+        #  RE-PUBLISH to matcher for new driver
+        publish_ride_requested(
+            ride_id=ride.id,
+            passenger_id=ride.passenger,
+            origin=ride.origin,
+            destination=ride.destination
+        )
+        
+        logger.info(f" Ride {ride.id} rejected, re-queued for matching")
 
         return Response(
-            {"detail": "Ride rejected successfully", "ride": RideSerializer(ride).data},
+            {"detail": "Ride rejected, searching for another driver"},
             status=status.HTTP_200_OK
         )
 
     @action(detail=True, methods=["post"])
     def complete(self, request, pk=None):
         """
-        Complete the ride (driver or passenger can trigger)
+        Complete the ride
+         NOW WITH RABBITMQ INTEGRATION
         """
         user_id = getattr(request, 'user_id', None)
         ride = get_object_or_404(Ride, pk=pk)
 
         if ride.status != Ride.STATUS_ACCEPTED:
             return Response(
-                {
-                    "detail": "Ride must be accepted before completion",
-                    "current_status": ride.status
-                },
+                {"detail": "Ride must be accepted before completion"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Only driver or passenger involved can complete
         if user_id not in [ride.passenger, ride.driver]:
             return Response(
-                {"detail": "You are not authorized to complete this ride"},
+                {"detail": "Not authorized to complete this ride"},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Calculate price (you can make this dynamic later)
-        ride.price = 10.00
+        # Calculate price
+        ride.price = 10.00  # TODO: Dynamic pricing
         ride.status = Ride.STATUS_COMPLETED
         ride.save()
 
         # Notify both parties
         NotificationService.notify_ride_completed(ride)
+        
+        #  PUBLISH TO RABBITMQ
+        publish_ride_completed(
+            ride_id=ride.id,
+            driver_id=ride.driver,
+            passenger_id=ride.passenger,
+            price=float(ride.price)
+        )
+        
+        logger.info(f" Ride {ride.id} completed, price: ${ride.price}")
 
         return Response(RideSerializer(ride).data)
 
@@ -332,14 +309,14 @@ class RideViewSet(viewsets.ModelViewSet):
     def cancel(self, request, pk=None):
         """
         Cancel the ride
+         NOW WITH RABBITMQ INTEGRATION
         """
         user_id = getattr(request, 'user_id', None)
         ride = get_object_or_404(Ride, pk=pk)
 
-        # Only passenger or assigned driver can cancel
         if user_id not in [ride.passenger, ride.driver]:
             return Response(
-                {"detail": "You are not authorized to cancel this ride"},
+                {"detail": "Not authorized to cancel this ride"},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -348,20 +325,24 @@ class RideViewSet(viewsets.ModelViewSet):
 
         # Notify the other party
         NotificationService.notify_ride_cancelled(ride, user_id)
+        
+        #  PUBLISH TO RABBITMQ
+        reason = request.data.get('reason', 'User cancelled')
+        publish_ride_cancelled(
+            ride_id=ride.id,
+            cancelled_by=user_id,
+            reason=reason
+        )
+        
+        logger.info(f" Ride {ride.id} cancelled by user {user_id}")
 
         return Response(RideSerializer(ride).data)
 
-    # ========== REAL-TIME STATUS POLLING ==========
-
     @action(detail=True, methods=["get"], url_path="status")
     def get_status(self, request, pk=None):
-        """
-        Get real-time ride status updates
-        Used for polling by frontend
-        """
+        """Get real-time ride status for polling"""
         ride = get_object_or_404(Ride, pk=pk)
         
-        # Check authorization
         user_id = getattr(request, 'user_id', None)
         if user_id not in [ride.passenger, ride.driver]:
             return Response(
@@ -369,7 +350,7 @@ class RideViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Get recent notifications for this ride (last 5 minutes)
+        # Get recent notifications (last 5 minutes)
         recent_time = timezone.now() - timedelta(minutes=5)
         recent_notifications = Notification.objects.filter(
             ride=ride,
