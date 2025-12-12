@@ -4,18 +4,44 @@ from django.conf import settings
 
 AUTH_VERIFY_URL = settings.AUTH_VERIFY_URL
 
+EXCLUDED_PATHS = [
+    "/admin",
+    "/admin/",
+    "/admin/login/",
+    "/admin/logout/",
+    "/static",
+    "/static/",
+    "/favicon.ico",
+]
+
+AUTH_PUBLIC_ENDPOINTS = [
+    "/accounts/api/login",
+    "/accounts/api/register",
+    "/accounts/api/verify",
+]
+
 def jwt_verification_middleware(get_response):
     """
-    Middleware that verifies JWT token with Auth-Service
-    and attaches user data to request.user_data
+    Middleware that verifies JWT token with Auth-Service,
+    except for admin panel, public routes, and static files.
     """
-    
     def middleware(request):
-        # Skip auth for admin panel and other non-API routes
-        if request.path.startswith('/admin/'):
+
+        path = request.path
+
+        # 1. Skip admin & static
+        if any(path.startswith(p) for p in EXCLUDED_PATHS):
             return get_response(request)
-        
-        # Get JWT from Authorization header
+
+        # 2. Skip public auth endpoints
+        if any(path.startswith(p) for p in AUTH_PUBLIC_ENDPOINTS):
+            return get_response(request)
+
+        # 3. Skip everything that is NOT an API route
+        if not path.startswith("/api/"):
+            return get_response(request)
+
+        # 4. Extract JWT
         auth_header = request.headers.get("Authorization")
 
         if not auth_header:
@@ -30,15 +56,14 @@ def jwt_verification_middleware(get_response):
                 "detail": "Use format: Bearer <token>"
             }, status=401)
 
-        # Extract token
         token = auth_header.replace("Bearer ", "").strip()
 
-        # Call Auth-Service to verify token
+        # 5. Call Auth-Service to verify
         try:
             response = requests.post(
-                AUTH_VERIFY_URL, 
+                AUTH_VERIFY_URL,
                 json={"token": token},
-                timeout=5  # 5 seconds timeout
+                timeout=5
             )
         except requests.exceptions.Timeout:
             return JsonResponse({
@@ -56,24 +81,20 @@ def jwt_verification_middleware(get_response):
                 "detail": str(e)
             }, status=503)
 
-        # Check if token is valid
+        # 6. Token invalid
         if response.status_code != 200:
             return JsonResponse({
                 "error": "Invalid or expired token",
                 "detail": "Your authentication token is not valid"
             }, status=401)
 
-        # Attach user data to request
-        # Auth-Service returns: {id, email, role}
+        # 7. Attach user data from auth-service
         user_data = response.json()
         request.user_data = user_data
-        
-        # For convenience, also set individual attributes
         request.user_id = user_data.get("id")
         request.user_email = user_data.get("email")
         request.user_role = user_data.get("role")
 
-        # Continue to the view
         return get_response(request)
 
     return middleware

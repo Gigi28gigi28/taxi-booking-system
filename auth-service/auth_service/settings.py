@@ -104,18 +104,14 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ============================================================
-# 🔥 CRITICAL FIX: REST FRAMEWORK SETTINGS
-# Don't require authentication by default - let views decide
-# ============================================================
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
-    # 🔥 CRITICAL: Don't enforce authentication globally
-    # Each view should specify its own permission_classes
+
+
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.AllowAny',  # ← Changed from IsAuthenticated
     ),
@@ -131,7 +127,7 @@ REST_FRAMEWORK = {
 
 # SIMPLE JWT - Depuis variables d'environnement
 SIMPLE_JWT = {
-    # 🔥 EXTENDED FOR DEVELOPMENT - 24 hours instead of 15 minutes
+  
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     
@@ -142,7 +138,7 @@ SIMPLE_JWT = {
     'USER_ID_CLAIM': 'sub',
     'TOKEN_OBTAIN_SERIALIZER': 'comptes.serializers.CustomTokenObtainPairSerializer',
     
-    # 🔥 ADD THIS - Update last_login timestamp
+  
     'UPDATE_LAST_LOGIN': True,
 }
 # RATE LIMIT CONFIG

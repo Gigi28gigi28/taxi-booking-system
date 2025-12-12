@@ -185,18 +185,13 @@ class ChangePasswordAPIView(APIView):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def verify_token(request):
-
-    
-    print("=" * 60)
-    print("🔍 TOKEN VERIFICATION REQUEST")
-    print("=" * 60)
     
     try:
         # Get token from request
         token_str = request.data.get("token")
         
         if not token_str:
-            print("❌ No token provided in request")
+            print(" No token provided in request")
             return Response({"error": "No token provided"}, status=400)
         
         print(f"Token received: {token_str[:50]}...")
@@ -204,32 +199,32 @@ def verify_token(request):
         # Decode and verify token using SimpleJWT
         try:
             token = AccessToken(token_str)
-            print("✅ Token decoded successfully")
+            print("Token decoded successfully")
         except InvalidToken as e:
-            print(f"❌ Token validation failed: {str(e)}")
+            print(f" Token validation failed: {str(e)}")
             return Response({
                 "error": "Invalid token",
                 "detail": str(e)
             }, status=401)
         except TokenError as e:
-            print(f"❌ Token error: {str(e)}")
+            print(f" Token error: {str(e)}")
             return Response({
                 "error": "Token error",
                 "detail": str(e)
             }, status=401)
         
         # Extract user info from token claims
-        user_id = token.get("sub")      # JWT standard: "sub" = subject = user_id
-        role = token.get("role")         # Custom claim
-        email = token.get("email")       # Custom claim
+        user_id = token.get("sub")     
+        role = token.get("role")         
+        email = token.get("email")      
         
-        print(f"📋 Token claims:")
+        print(f" Token claims:")
         print(f"   - user_id (sub): {user_id}")
         print(f"   - role: {role}")
         print(f"   - email: {email}")
         
         if not user_id:
-            print("❌ No user_id (sub) in token")
+            print(" No user_id (sub) in token")
             return Response({
                 "error": "Invalid token structure",
                 "detail": "Token missing 'sub' claim"
@@ -238,9 +233,9 @@ def verify_token(request):
         # Verify user exists in database
         try:
             user = User.objects.get(id=user_id)
-            print(f"✅ User found in database: {user.email}")
+            print(f"User found in database: {user.email}")
         except User.DoesNotExist:
-            print(f"❌ User {user_id} not found in database")
+            print(f" User {user_id} not found in database")
             return Response({
                 "error": "User not found",
                 "detail": f"User with id {user_id} does not exist"
@@ -253,13 +248,13 @@ def verify_token(request):
             "role": user.role,
         }
         
-        print(f"✅ Returning user data: {response_data}")
+        print(f"Returning user data: {response_data}")
         print("=" * 60)
         
         return Response(response_data, status=200)
     
     except Exception as e:
-        print(f"❌ Unexpected error: {str(e)}")
+        print(f" Unexpected error: {str(e)}")
         print(f"   Error type: {type(e).__name__}")
         import traceback
         traceback.print_exc()
