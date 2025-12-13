@@ -4,7 +4,7 @@ Django settings for ride_service project (Microservice Ride).
 
 from pathlib import Path
 import os
-
+import logging
 # BASE DIR
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -109,3 +109,37 @@ REST_FRAMEWORK = {
     #  REMOVED: No local JWT authentication - middleware handles it
     'DEFAULT_AUTHENTICATION_CLASSES': [],
 }
+
+# Setup logging for service discovery
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Try to discover auth-service via Consul
+try:
+    from rides.consul_discovery import discover_service, is_consul_available
+    
+    if is_consul_available():
+        logger.info(" Consul available - using service discovery")
+        
+        # Discover auth-service dynamically
+        auth_base_url = discover_service(
+            service_name='auth-service',
+            fallback_url='http://localhost:8000'
+        )
+        
+        AUTH_VERIFY_URL = f"{auth_base_url}/accounts/api/verify/"
+        logger.info(f" Auth service URL: {AUTH_VERIFY_URL}")
+    else:
+        logger.warning(" Consul not available - using fallback URL")
+        AUTH_VERIFY_URL = "http://localhost:8000/accounts/api/verify/"
+        
+except Exception as e:
+    logger.warning(f" Service discovery failed: {e}")
+    logger.warning("Falling back to hardcoded URL")
+    AUTH_VERIFY_URL = os.getenv(
+        "AUTH_VERIFY_URL",
+        "http://localhost:8000/accounts/api/verify/"
+    )
+
+logger.info(f" Final AUTH_VERIFY_URL: {AUTH_VERIFY_URL}")
+

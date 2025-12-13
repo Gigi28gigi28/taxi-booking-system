@@ -1,17 +1,41 @@
 entryPoints:
   web:
-    address: ":8082"
-  websecure:
-    address: ":8443"
-  traefik:
-    address: ":8080"
+    address: ":8080"        
+  
+  dashboard:
+    address: ":8081"       
 
+# API & Dashboard
 api:
-  dashboard: true
-  insecure: true
+  dashboard: true           
+  insecure: true           
 
+# Providers - Sources de configuration
 providers:
   consulCatalog:
     endpoint:
-      address: "127.0.0.1:8500"
-    exposedByDefault: false
+      address: "127.0.0.1:8500"     
+    exposedByDefault: false          
+    prefix: "traefik"                
+    defaultRule: "Host(`localhost`)" 
+    
+    # Health checks
+    healthcheck:
+      interval: "10s"
+      timeout: "5s"
+
+# Logging
+log:
+  level: DEBUG              # DEBUG pour dev, INFO pour prod
+  format: common
+
+# Access Log (optionnel)
+accessLog:
+  format: common
+  
+# Timeouts
+serversTransport:
+  insecureSkipVerify: true
+  forwardingTimeouts:
+    dialTimeout: "30s"
+    responseHeaderTimeout: "30s"

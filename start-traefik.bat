@@ -1,29 +1,54 @@
 @echo off
-echo   Démarrage de Traefik Reverse Proxy
+echo ═══════════════════════════════════════════════
+echo    Démarrage de Traefik Reverse Proxy
+echo ═══════════════════════════════════════════════
+echo.
 
 REM Vérifier que Consul est actif
-echo Vérification de Consul...
-curl -s http://localhost:8500/v1/status/leader > nul
+echo 🔍 Vérification de Consul...
+curl -s http://localhost:8500/v1/status/leader > nul 2>&1
 if errorlevel 1 (
+    echo.
     echo  ERREUR: Consul n'est pas actif!
+    echo.
     echo Lancez d'abord: start-consul.bat
+    echo.
     pause
     exit /b 1
 )
 
-echo Consul actif
-
-REM Lancer Traefik en arrière-plan dans une nouvelle fenêtre
+echo  Consul actif
 echo.
-echo Lancement de Traefik...
-start "Traefik Reverse Proxy" "C:\Traefik\traefik.exe" --configFile="C:\Users\ss\Desktop\Taxi-booking-system\traefik.yml" --log.level=DEBUG
 
-timeout /t 3 /nobreak > nul
+REM Vérifier que le fichier de config existe
+if not exist "traefik.yml" (
+    echo  ERREUR: fichier traefik.yml introuvable!
+    echo Assurez-vous d'être dans le bon répertoire
+    pause
+    exit /b 1
+)
 
+echo  Configuration trouvée: traefik.yml
 echo.
-echo   Traefik est en cours d'exécution dans une fenêtre séparée
-echo   Traefik Dashboard: http://localhost:8081
-echo   API Gateway: http://localhost:8080
+
+REM Lancer Traefik
+echo  Lancement de Traefik...
 echo.
-echo   Ne fermez pas la fenêtre Traefik!
+echo ════════════════════════════════════════════
+echo   Traefik est maintenant actif!
+echo ════════════════════════════════════════════
+echo.
+echo  Dashboard: http://localhost:8081
+echo  API Gateway: http://localhost:8080
+echo.
+echo  Testez vos services:
+echo   - Auth:  http://localhost:8080/accounts/api/...
+echo   - Rides: http://localhost:8080/api/rides/
+echo.
+echo  Ne fermez pas cette fenêtre!
+echo.
+
+REM Lancer Traefik avec le fichier de config du répertoire courant
+traefik --configFile=traefik.yml --log.level=DEBUG
+
 pause
