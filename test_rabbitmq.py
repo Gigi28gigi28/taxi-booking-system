@@ -8,7 +8,7 @@ try:
     )
     channel = connection.channel()
     
-    print("✅ Connected to RabbitMQ successfully!")
+    print(" Connected to RabbitMQ successfully!")
     
     # Declare queue (safe to call even if exists)
     channel.queue_declare(queue='ride.requested', durable=True)
@@ -31,9 +31,9 @@ try:
         )
     )
     
-    print(f"✅ Published test message: {test_message}")
+    print(f" Published test message: {test_message}")
     
     connection.close()
     
 except Exception as e:
-    print(f"❌ Error: {e}")
+    print(f"Error: {e}")

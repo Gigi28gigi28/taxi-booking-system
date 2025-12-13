@@ -1,0 +1,17 @@
+entryPoints:
+  web:
+    address: ":8082"
+  websecure:
+    address: ":8443"
+  traefik:
+    address: ":8080"
+
+api:
+  dashboard: true
+  insecure: true
+
+providers:
+  consulCatalog:
+    endpoint:
+      address: "127.0.0.1:8500"
+    exposedByDefault: false
