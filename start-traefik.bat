@@ -38,7 +38,7 @@ echo ═════════════════════════
 echo   Traefik est maintenant actif!
 echo ════════════════════════════════════════════
 echo.
-echo  Dashboard: http://localhost:8081
+echo  Dashboard: http://localhost:8082
 echo  API Gateway: http://localhost:8080
 echo.
 echo  Testez vos services:

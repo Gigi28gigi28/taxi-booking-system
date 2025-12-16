@@ -2,7 +2,7 @@
 cls
 echo    DÉMARRAGE COMPLET - ARCHITECTURE MICROSERVICES
 echo.
-echo 📋 Ordre de démarrage:
+echo  Ordre de démarrage:
 echo   1.  Consul (Service Registry)
 echo   2.  RabbitMQ (Message Broker)
 echo   3.  Auth-Service (Port 8000)
@@ -80,12 +80,12 @@ echo    Consul UI:         http://localhost:8500
 echo   Traefik Dashboard: http://localhost:8081
 echo    RabbitMQ UI:       http://localhost:15672
 echo.
-echo Points d'entrée:
+echo Points dentrée:
 echo    API Gateway:       http://localhost:8080
 echo   Auth Direct:       http://localhost:8000
 echo   Ride Direct:       http://localhost:8001
 echo.
-echo  Testez l'API via Traefik:
+echo  Testez l API via Traefik:
 echo   POST http://localhost:8080/accounts/api/login/
 echo   GET  http://localhost:8080/api/rides/
 echo.
