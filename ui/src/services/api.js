@@ -1,4 +1,5 @@
-const API_URL = 'http://localhost:8000'; // Adjust to match your backend URL
+// API Configuration - Route through Traefik Gateway
+const GATEWAY_URL = 'http://localhost:8080';  // Traefik routes everything
 
 const getAuthHeaders = () => {
     const token = localStorage.getItem('access_token');
@@ -8,9 +9,12 @@ const getAuthHeaders = () => {
     };
 };
 
-// Auth endpoints
+// ============================================
+// AUTH ENDPOINTS (via Traefik → Auth Service)
+// ============================================
+
 export const login = async (email, password) => {
-    const response = await fetch(`${API_URL}/accounts/api/login/`, {
+    const response = await fetch(`${GATEWAY_URL}/accounts/api/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -25,7 +29,7 @@ export const login = async (email, password) => {
 };
 
 export const chauffeurLogin = async (email, password) => {
-    const response = await fetch(`${API_URL}/accounts/api/chauffeur/login/`, {
+    const response = await fetch(`${GATEWAY_URL}/accounts/api/chauffeur/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -40,7 +44,7 @@ export const chauffeurLogin = async (email, password) => {
 };
 
 export const register = async (email, password, nom, prenom) => {
-    const response = await fetch(`${API_URL}/accounts/api/register/`, {
+    const response = await fetch(`${GATEWAY_URL}/accounts/api/register/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, password2: password, nom, prenom }),
@@ -54,9 +58,12 @@ export const register = async (email, password, nom, prenom) => {
     return response.json();
 };
 
-// Ride endpoints
+// ============================================
+// RIDE ENDPOINTS (via Traefik → Ride Service)
+// ============================================
+
 export const getRides = async () => {
-    const response = await fetch(`${API_URL}/api/rides/`, {
+    const response = await fetch(`${GATEWAY_URL}/api/rides/`, {
         headers: getAuthHeaders(),
     });
 
@@ -68,7 +75,7 @@ export const getRides = async () => {
 };
 
 export const createRide = async (origin, destination) => {
-    const response = await fetch(`${API_URL}/api/rides/`, {
+    const response = await fetch(`${GATEWAY_URL}/api/rides/`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ origin, destination }),
@@ -83,7 +90,7 @@ export const createRide = async (origin, destination) => {
 };
 
 export const acceptRide = async (rideId) => {
-    const response = await fetch(`${API_URL}/api/rides/${rideId}/accept/`, {
+    const response = await fetch(`${GATEWAY_URL}/api/rides/${rideId}/accept/`, {
         method: 'POST',
         headers: getAuthHeaders(),
     });
@@ -97,7 +104,7 @@ export const acceptRide = async (rideId) => {
 };
 
 export const rejectRide = async (rideId) => {
-    const response = await fetch(`${API_URL}/api/rides/${rideId}/reject/`, {
+    const response = await fetch(`${GATEWAY_URL}/api/rides/${rideId}/reject/`, {
         method: 'POST',
         headers: getAuthHeaders(),
     });
@@ -111,7 +118,7 @@ export const rejectRide = async (rideId) => {
 };
 
 export const completeRide = async (rideId) => {
-    const response = await fetch(`${API_URL}/api/rides/${rideId}/complete/`, {
+    const response = await fetch(`${GATEWAY_URL}/api/rides/${rideId}/complete/`, {
         method: 'POST',
         headers: getAuthHeaders(),
     });
@@ -125,7 +132,7 @@ export const completeRide = async (rideId) => {
 };
 
 export const cancelRide = async (rideId, reason) => {
-    const response = await fetch(`${API_URL}/api/rides/${rideId}/cancel/`, {
+    const response = await fetch(`${GATEWAY_URL}/api/rides/${rideId}/cancel/`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ reason }),
@@ -139,9 +146,12 @@ export const cancelRide = async (rideId, reason) => {
     return response.json();
 };
 
-// Notification endpoints
+// ============================================
+// NOTIFICATION ENDPOINTS (via Traefik → Ride Service)
+// ============================================
+
 export const getNotifications = async () => {
-    const response = await fetch(`${API_URL}/api/notifications/`, {
+    const response = await fetch(`${GATEWAY_URL}/api/notifications/`, {
         headers: getAuthHeaders(),
     });
 
@@ -153,7 +163,7 @@ export const getNotifications = async () => {
 };
 
 export const pollNotifications = async (since) => {
-    const response = await fetch(`${API_URL}/api/notifications/poll/?since=${since}`, {
+    const response = await fetch(`${GATEWAY_URL}/api/notifications/poll/?since=${since}`, {
         headers: getAuthHeaders(),
     });
 
@@ -165,7 +175,7 @@ export const pollNotifications = async (since) => {
 };
 
 export const markNotificationRead = async (notificationId) => {
-    const response = await fetch(`${API_URL}/api/notifications/${notificationId}/read/`, {
+    const response = await fetch(`${GATEWAY_URL}/api/notifications/${notificationId}/mark_as_read/`, {
         method: 'POST',
         headers: getAuthHeaders(),
     });

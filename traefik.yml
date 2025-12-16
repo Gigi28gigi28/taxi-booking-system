@@ -1,28 +1,30 @@
-# Traefik Configuration - Fixed & Tested
-
 # Entry Points
 entryPoints:
   web:
-    address: ":8080"        # API Gateway (your services)
+    address: ":8080"
   
   traefik:
-    address: ":8082"        # Dashboard
+    address: ":8082"
 
 # API & Dashboard
 api:
-  dashboard: true           # Enable dashboard
-  insecure: true           # Allow without auth (dev only!)
+  dashboard: true
+  insecure: true
 
-# Providers - Consul Service Discovery
+# Providers
 providers:
+  # File provider for manual configuration
+  file:
+    filename: "traefik-dynamic.yml"
+    watch: true
+
+  # Consul for service discovery
   consulCatalog:
     endpoint:
       address: "127.0.0.1:8500"
     exposedByDefault: false
     prefix: "traefik"
     defaultRule: "Host(`localhost`)"
-    
-    # Consul health checks
     connectAware: false
     connectByDefault: false
 
@@ -31,10 +33,8 @@ log:
   level: DEBUG
   format: common
 
-# Access logs (optional - helpful for debugging)
 accessLog:
   format: common
 
-# Ping endpoint (health check)
 ping:
   entryPoint: "traefik"
