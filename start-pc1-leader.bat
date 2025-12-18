@@ -1,25 +1,13 @@
 @echo off
+cls
 echo ========================================
-echo  PC 1 - CONSUL LEADER + GATEWAY
+echo  PC1 - CONSUL LEADER + GATEWAY + UI
+echo  IP: 10.70.95.95
 echo ========================================
 echo.
 
-set PC1_IP=192.168.1.38
-
 echo [1/3] Starting Consul Leader...
-start "Consul Leader" cmd /k ^
-"consul agent ^
- -server ^
- -bootstrap-expect=1 ^
- -datacenter=dc1 ^
- -node=consul-leader-pc1 ^
- -data-dir=consul-data-pc1 ^
- -bind=%PC1_IP% ^
- -advertise=%PC1_IP% ^
- -client=0.0.0.0 ^
- -ui ^
- -log-level=INFO"
-
+start "Consul Leader" cmd /k "consul agent -config-file=consul-config.json"
 timeout /t 5 /nobreak > nul
 
 echo [2/3] Starting Traefik Gateway...
@@ -33,17 +21,14 @@ cd ..
 
 echo.
 echo ========================================
-echo  PC 1 READY!
+echo  PC1 READY!
 echo ========================================
 echo.
-echo Consul UI:      http://%PC1_IP%:8500
-echo Traefik:        http://%PC1_IP%:8082
-echo API Gateway:    http://%PC1_IP%:8080
-echo Frontend:       http://%PC1_IP%:3000
+echo Consul UI:      http://10.70.95.95:8500
+echo Traefik:        http://10.70.95.95:8082
+echo API Gateway:    http://10.70.95.95:8080
+echo Frontend:       http://10.70.95.95:3000
 echo.
-echo Other machines should connect to: %PC1_IP%
+echo Other machines connect to: 10.70.95.95:8500
 echo.
 pause
-
-
-

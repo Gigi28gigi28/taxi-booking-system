@@ -1,0 +1,8 @@
+alive: consul-leader-pc1 10.70.95.95:8301
+event-clock: 1
+alive: consul-leader-pc1 10.70.95.95:8301
+event-clock: 2
+alive: consul-leader-pc1 10.70.95.95:8301
+event-clock: 3
+alive: consul-leader-pc1 10.70.95.95:8301
+event-clock: 4

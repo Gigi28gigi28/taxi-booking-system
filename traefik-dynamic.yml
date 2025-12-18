@@ -1,45 +1,33 @@
-# traefik-dynamic.yml
 http:
   middlewares:
-    # CORS Middleware for all services
     cors-headers:
       headers:
         accessControlAllowOriginList:
-          - "http://localhost:3000"
-          - "http://localhost:5173"
-          - "http://192.168.1.10:3000"  # For multi-PC deployment
+          - "http://10.70.95.95:3000"
         accessControlAllowMethods:
-          - "GET"
-          - "POST"
-          - "PUT"
-          - "DELETE"
-          - "PATCH"
-          - "OPTIONS"
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+          - OPTIONS
         accessControlAllowHeaders:
-          - "Content-Type"
-          - "Authorization"
-          - "X-Requested-With"
-          - "Accept"
-          - "Origin"
-        accessControlExposeHeaders:
-          - "Content-Length"
-          - "Content-Type"
+          - Content-Type
+          - Authorization
         accessControlAllowCredentials: true
-        accessControlMaxAge: 100
         addVaryHeader: true
 
-  # Apply CORS to all routes
   routers:
-    auth-service-cors:
+    auth-router:
       rule: "PathPrefix(`/accounts/`) || PathPrefix(`/api/token/`)"
-      service: "auth-service"
+      service: auth-service
       middlewares:
         - cors-headers
       priority: 100
 
-    ride-service-cors:
-      rule: "PathPrefix(`/api/rides`) || PathPrefix(`/api/notifications`) || PathPrefix(`/api/internal`)"
-      service: "ride-service"
+    ride-router:
+      rule: "PathPrefix(`/api/rides/`) || PathPrefix(`/api/notifications/`)"
+      service: ride-service
       middlewares:
         - cors-headers
       priority: 90
@@ -48,9 +36,9 @@ http:
     auth-service:
       loadBalancer:
         servers:
-          - url: "http://localhost:8000"
+          - url: "http://10.70.95.87:8000"  # PC2 auth service
 
     ride-service:
       loadBalancer:
         servers:
-          - url: "http://localhost:8001"
+          - url: "http://10.70.95.49:8001"  # PC2 ride service or wherever it runs

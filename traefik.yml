@@ -21,7 +21,7 @@ providers:
   # Consul Catalog for service discovery
   consulCatalog:
     endpoint:
-      address: "10.181.10.95:8500"   # Consul Leader (PC1 – Wi-Fi IP)
+      address: "10.70.95.95:8500"   # Consul Leader (PC1)
     exposedByDefault: false
     prefix: "traefik"
     defaultRule: "Host(`localhost`)"
@@ -39,3 +39,4 @@ accessLog:
 # Health check endpoint
 ping:
   entryPoint: "traefik"
+  

@@ -3,8 +3,9 @@
     "data_dir": "./consul-data",
     "server": true,
     "bootstrap_expect": 1,
-    "node_name": "consul-server",
-    "bind_addr": "127.0.0.1",
+    "node_name": "consul-leader-pc1",
+    "bind_addr": "10.70.95.95",
+    "advertise_addr": "10.70.95.95",
     "client_addr": "0.0.0.0",
     "ui_config": {
         "enabled": true

@@ -10,11 +10,11 @@ export default defineConfig({
 
     proxy: {
       '/accounts': {
-        target: 'http://192.168.1.38:8080',
+        target: 'http://10.70.95.95:8080',
         changeOrigin: true
       },
       '/api': {
-        target: 'http://192.168.1.38:8080',
+        target: 'http://10.70.95.95:8080',
         changeOrigin: true
       }
     }
