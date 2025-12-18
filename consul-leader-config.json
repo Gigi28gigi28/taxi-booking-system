@@ -1,0 +1,16 @@
+={
+    "node_name": "consul-leader-pc1",
+    "datacenter": "dc1",
+    "server": true,
+    "bootstrap_expect": 1,
+    "bind_addr": "192.168.1.38",
+    "client_addr": "0.0.0.0",
+    "ui": true,
+    "acl": {
+        "enabled": true,
+        "default_policy": "deny",
+        "tokens": {
+            "master": "00000000-0000-0000-0000-000000000001"
+        }
+    }
+}

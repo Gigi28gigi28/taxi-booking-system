@@ -1,0 +1,64 @@
+alive: consul-leader-pc1 192.168.1.38:8301
+event-clock: 1
+alive: consul-agent-pc2 192.168.1.43:9401
+clock: 1
+alive: consul-agent-pc4 192.168.1.40:8301
+alive: islam-HP-Laptop-15s-fq1xxx 192.168.1.42:8301
+event-clock: 13
+event-clock: 14
+event-clock: 15
+clock: 66
+clock: 67
+clock: 68
+not-alive: consul-agent-pc4
+clock: 69
+clock: 70
+alive: consul-agent-pc4 192.168.1.40:8301
+clock: 72
+clock: 73
+not-alive: consul-agent-pc2
+alive: consul-agent-pc2 192.168.1.43:9401
+alive: consul-leader-pc1 192.168.1.38:8301
+alive: islam-HP-Laptop-15s-fq1xxx 192.168.1.42:8301
+alive: consul-agent-pc4 192.168.1.40:8301
+alive: consul-agent-pc2 192.168.1.43:9401
+event-clock: 16
+clock: 74
+alive: consul-leader-pc1 192.168.1.38:8301
+event-clock: 17
+alive: consul-agent-pc2 192.168.1.43:9401
+clock: 77
+clock: 78
+alive: islam-HP-Laptop-15s-fq1xxx 192.168.1.42:8301
+clock: 79
+alive: consul-agent-pc4 192.168.1.40:8301
+clock: 80
+not-alive: consul-agent-pc2
+not-alive: islam-HP-Laptop-15s-fq1xxx
+not-alive: consul-agent-pc4
+alive: consul-leader-pc1 192.168.1.38:8301
+event-clock: 18
+alive: consul-agent-pc2 192.168.1.43:9401
+clock: 81
+alive: consul-leader-pc1 192.168.1.38:8301
+event-clock: 19
+alive: consul-agent-pc2 192.168.1.43:9401
+clock: 82
+not-alive: consul-agent-pc2
+alive: consul-agent-pc2 192.168.1.43:9401
+clock: 83
+alive: consul-leader-pc1 192.168.1.38:8301
+alive: consul-agent-pc2 192.168.1.43:9401
+event-clock: 20
+alive: consul-leader-pc1 192.168.1.38:8301
+alive: consul-agent-pc2 192.168.1.43:9401
+event-clock: 21
+not-alive: consul-agent-pc2
+alive: consul-agent-pc2 192.168.1.43:9401
+clock: 84
+alive: consul-agent-pc4 192.168.1.40:8301
+not-alive: consul-agent-pc4
+alive: consul-leader-pc1 192.168.1.38:8301
+alive: consul-agent-pc2 192.168.1.43:9401
+event-clock: 22
+not-alive: consul-agent-pc2

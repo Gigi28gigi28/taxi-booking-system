@@ -1,5 +1,5 @@
 // API Configuration - Route through Traefik Gateway
-const GATEWAY_URL = 'http://localhost:8080';  // Traefik routes everything
+const GATEWAY_URL = 'http://192.168.1.43:8080';
 
 const getAuthHeaders = () => {
     const token = localStorage.getItem('access_token');

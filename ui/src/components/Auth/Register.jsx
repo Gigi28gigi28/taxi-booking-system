@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { AlertCircle, Car, UserPlus } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
-const Register = ({ onSwitchToLogin, onRegisterSuccess }) => {
+const Register = ({ onSwitchToLogin }) => {
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -11,6 +12,7 @@ const Register = ({ onSwitchToLogin, onRegisterSuccess }) => {
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const { register } = useAuth();
 
     const handleChange = (e) => {
         setFormData({
@@ -40,42 +42,19 @@ const Register = ({ onSwitchToLogin, onRegisterSuccess }) => {
 
         setLoading(true);
 
-        try {
-            const response = await fetch('http://localhost:8080/accounts/api/register/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email: formData.email,
-                    password: formData.password,
-                    password2: formData.password2,
-                    nom: formData.nom,
-                    prenom: formData.prenom
-                })
-            });
+        const result = await register(
+            formData.email,
+            formData.password,
+            formData.nom,
+            formData.prenom
+        );
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.detail || data.email?.[0] || 'Registration failed');
-            }
-
-            // Store tokens
-            localStorage.setItem('access_token', data.tokens.access);
-            localStorage.setItem('refresh_token', data.tokens.refresh);
-            localStorage.setItem('user_data', JSON.stringify(data.user));
-
-            // Call success callback
-            if (onRegisterSuccess) {
-                onRegisterSuccess(data.user);
-            }
-
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
+        if (!result.success) {
+            setError(result.error || 'Registration failed');
         }
+        // If successful, AuthContext will update and App.jsx will show the dashboard
+
+        setLoading(false);
     };
 
     const handleKeyPress = (e) => {
@@ -175,13 +154,16 @@ const Register = ({ onSwitchToLogin, onRegisterSuccess }) => {
                         <span>{loading ? 'Creating Account...' : 'Register'}</span>
                     </button>
 
-                    <div className="text-center">
-                        <button
-                            onClick={onSwitchToLogin}
-                            className="text-blue-600 hover:text-blue-700 text-sm"
-                        >
-                            Already have an account? Login
-                        </button>
+                    <div className="text-center pt-2 border-t border-gray-200">
+                        <p className="text-sm text-gray-600">
+                            Already have an account?{' '}
+                            <button
+                                onClick={onSwitchToLogin}
+                                className="text-blue-600 hover:text-blue-700 font-medium"
+                            >
+                                Login here
+                            </button>
+                        </p>
                     </div>
                 </div>
             </div>

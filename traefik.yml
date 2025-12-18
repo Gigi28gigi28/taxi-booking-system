@@ -2,7 +2,7 @@
 entryPoints:
   web:
     address: ":8080"
-  
+
   traefik:
     address: ":8082"
 
@@ -13,15 +13,15 @@ api:
 
 # Providers
 providers:
-  # File provider for manual configuration
+  # File provider for manual / dynamic configuration
   file:
     filename: "traefik-dynamic.yml"
     watch: true
 
-  # Consul for service discovery
+  # Consul Catalog for service discovery
   consulCatalog:
     endpoint:
-      address: "127.0.0.1:8500"
+      address: "10.181.10.95:8500"   # Consul Leader (PC1 – Wi-Fi IP)
     exposedByDefault: false
     prefix: "traefik"
     defaultRule: "Host(`localhost`)"
@@ -36,5 +36,6 @@ log:
 accessLog:
   format: common
 
+# Health check endpoint
 ping:
   entryPoint: "traefik"

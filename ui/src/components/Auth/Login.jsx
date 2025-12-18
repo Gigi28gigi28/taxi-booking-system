@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Car, AlertCircle } from 'lucide-react';
 import { useAuth } from "../../context/AuthContext";
 
-const Login = () => {
+const Login = ({ onSwitchToRegister }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isDriver, setIsDriver] = useState(false);
@@ -94,6 +94,19 @@ const Login = () => {
                     >
                         {loading ? 'Logging in...' : 'Login'}
                     </button>
+
+                    {/* Register Link */}
+                    <div className="text-center pt-2 border-t border-gray-200">
+                        <p className="text-sm text-gray-600">
+                            Don't have an account?{' '}
+                            <button
+                                onClick={onSwitchToRegister}
+                                className="text-blue-600 hover:text-blue-700 font-medium"
+                            >
+                                Register here
+                            </button>
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
